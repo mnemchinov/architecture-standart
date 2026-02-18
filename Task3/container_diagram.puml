@@ -1,0 +1,63 @@
+@startuml C4_Containers_DepositOpening
+
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+title C4 Model: Диаграмма контейнеров — Система открытия депозитов онлайн
+
+Person(user_new, "Новый клиент", "Клиент, который хочет открыть депозит через сайт")
+Person(user_existing, "Существующий клиент", "Клиент банка с доступом к интернет-банку")
+Person(backoffice, "Менеджер бэк-офиса", "Обрабатывает заявки в АБС")
+Person(callcenter, "Менеджер кол-центра", "Принимает звонки и обрабатывает заявки")
+
+System_Boundary(depositSystem, "Система открытия депозитов онлайн") {
+
+    Container(website, "Сайт", "PHP/React.js", "Маркетинговый канал для новых клиентов")
+    ContainerDb(websiteDb, "БД Сайта", "MySQL/PostgreSQL", "Хранение данных сайта")
+
+    Container(internetBank, "Интернет-банк", "ASP.NET MVC 4.5", "Онлайн-канал для существующих клиентов")
+    ContainerDb(internetBankDb, "БД Интернет-банка", "MS SQL", "Хранение данных интернет-банка")
+
+    Container(apiGateway, "API Gateway", "ASP.NET Core", "Промежуточный слой для разгрузки АБС")
+    ContainerDb(apiGatewayDb, "БД API Gateway", "MS SQL / Redis", "Кэширование ставок и справочников")
+
+    Container(ratesService, "Сервис ставок", "Java/Spring Boot", "Автоматический расчёт ставок")
+    ContainerDb(ratesDb, "БД Сервиса ставок", "Oracle / MS SQL", "Хранение ставок")
+
+    Container(callCenterSystem, "Система кол-центра", "Java/Spring Boot", "Обработка звонков и заявок")
+    ContainerDb(callCenterDb, "БД Кол-центра", "PostgreSQL", "Хранение данных кол-центра")
+}
+
+System_Ext(abs, "АБС", "Core-система банка (Delphi/Oracle)")
+SystemDb(absDb, "БД АБС", "Oracle", "Основная БД банка")
+System_Ext(smsGateway, "СМС-шлюз", "Внешний сервис отправки СМС")
+
+' Связи клиентов
+Rel(user_new, website, "Просмотр депозитов, подача заявка", "HTTPS")
+Rel(user_existing, internetBank, "Просмотр депозитов, подача заявка, подтверждение СМС", "HTTPS")
+
+' Связи внутри системы
+Rel(website, apiGateway, "Получение ставок, подача заявка", "HTTPS/TLS")
+Rel(internetBank, apiGateway, "Получение ставок, подача заявка, подтверждение СМС", "HTTPS/TLS")
+Rel(apiGateway, ratesService, "Получение ставок, расчёт персонализированных", "REST")
+Rel(apiGateway, abs, "Создание заявки, получение данных клиента", "REST")
+Rel(ratesService, abs, "Синхронизация ставок", "REST")
+Rel(callCenterSystem, apiGateway, "Получение ставок, передача заявок", "REST")
+Rel(callCenterSystem, abs, "Запрос персонализированной ставки", "REST")
+
+' Связи с БД внутри системы
+Rel(website, websiteDb, "Чтение/запись", "SQL")
+Rel(internetBank, internetBankDb, "Чтение/запись", "SQL")
+Rel(apiGateway, apiGatewayDb, "Кэширование", "Redis")
+Rel(ratesService, ratesDb, "Чтение/запись", "SQL")
+Rel(callCenterSystem, callCenterDb, "Чтение/запись", "SQL")
+
+' Связи с внешними системами
+Rel(internetBank, smsGateway, "Отправка СМС-кода", "HTTPS")
+Rel(abs, smsGateway, "Отправка СМС-уведомлений", "HTTPS")
+Rel(abs, absDb, "Чтение/запись", "SQL")
+
+' Связи менеджеров
+Rel(backoffice, abs, "Обработка заявки, подтверждение депозита", "АБС клиент")
+Rel(callcenter, callCenterSystem, "Работа с заявками", "Web UI")
+
+@enduml
