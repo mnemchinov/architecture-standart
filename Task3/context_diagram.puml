@@ -1,0 +1,25 @@
+@startuml C4_Context_DepositOpening
+
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+title C4 Model: Диаграмма контекста — Система открытия депозитов онлайн
+
+Person(user_new, "Новый клиент", "Клиент, который хочет открыть депозит через сайт")
+Person(user_existing, "Существующий клиент", "Клиент банка с доступом к интернет-банку")
+Person(backoffice, "Менеджер бэк-офиса", "Обрабатывает заявки в АБС")
+Person(callcenter, "Менеджер кол-центра", "Принимает звонки и обрабатывает заявки")
+
+System(depositSystem, "Система открытия депозитов онлайн", "MVP для онлайн-открытия депозитов")
+
+System_Ext(smsGateway, "СМС-шлюз", "Внешний сервис отправки СМС")
+System_Ext(abs, "АБС", "Core-система банка (Delphi/Oracle)")
+
+Rel(user_new, depositSystem, "Просмотр депозитов, подача заявки", "HTTPS")
+Rel(user_existing, depositSystem, "Просмотр депозитов, подача заявки, подтверждение СМС", "HTTPS")
+Rel(depositSystem, backoffice, "Обработка заявки, подтверждение депозита")
+Rel(depositSystem, callcenter, "Обработка заявки, запрос ставки")
+Rel(depositSystem, smsGateway, "Отправка СМС")
+Rel(depositSystem, abs, "Хранение заявок, ставок, депозиты")
+Rel(callcenter, abs, "Запрос персонализированной ставки")
+
+@enduml
